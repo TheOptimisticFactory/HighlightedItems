@@ -74,7 +74,7 @@ namespace HighlightedItems
                 }
 
                 string countText;
-                if (Settings.ShowStackSizes && highlightedItems.Count != stackSizes && stackSizes !=null)
+                if (Settings.ShowStackSizes && highlightedItems.Count != stackSizes && stackSizes != null)
                     if (Settings.ShowStackCountWithSize) countText = $"{stackSizes} / {highlightedItems.Count}";
                     else countText = $"{stackSizes}";
                 else
@@ -90,6 +90,21 @@ namespace HighlightedItems
                     var prevMousePos = Mouse.GetCursorPosition();
                     foreach (var item in highlightedItems)
                     {
+                        if (!ingameState.IngameUi.StashElement.IsVisible)
+                        {
+                            DebugWindow.LogMsg("HighlightedItems: Stash Panel closed, aborting loop");
+                            break;
+                        }
+                        if (!ingameState.IngameUi.InventoryPanel.IsVisible)
+                        {
+                            DebugWindow.LogMsg("HighlightedItems: Inventory Panel closed, aborting loop");
+                            break;
+                        }
+                        if (IsInventoryFull())
+                        {
+                            DebugWindow.LogMsg("HighlightedItems: Inventory full, aborting loop");
+                            break;
+                        }
                         moveItem(item.GetClientRect().Center);
                     }
                     Mouse.moveMouse(prevMousePos);
@@ -112,6 +127,19 @@ namespace HighlightedItems
                     {
                         if (!CheckIgnoreCells(item))
                         {
+                            if (!ingameState.IngameUi.InventoryPanel.IsVisible)
+                            {
+                                DebugWindow.LogMsg("HighlightedItems: Inventory Panel closed, aborting loop");
+                                break;
+                            }
+                            
+                            if (!ingameState.IngameUi.StashElement.IsVisible
+                                && !ingameState.IngameUi.SellWindow.IsVisible
+                                && !ingameState.IngameUi.TradeWindow.IsVisible)
+                            {
+                                DebugWindow.LogMsg("HighlightedItems: Stash Panel closed, aborting loop");
+                                break;
+                            }
                             moveItem(item.GetClientRect().Center);
                         }
                     }
@@ -145,6 +173,51 @@ namespace HighlightedItems
             catch (System.Exception) { }
             
             return highlightedItems;
+        }
+
+        private bool IsInventoryFull()
+        {
+            var inventoryPanel = ingameState.IngameUi.InventoryPanel;
+            var inventoryItems = inventoryPanel[InventoryIndex.PlayerInventory].VisibleInventoryItems;
+
+            // quick sanity check
+            if (inventoryItems.Count < 12)
+            {
+                return false;
+            }
+
+            // track each inventory slot
+            bool[,] inventorySlot = new bool[12, 5];
+
+            // iterate through each item in the inventory and mark used slots
+            foreach (var inventoryItem in inventoryItems)
+            {
+                int x = inventoryItem.InventPosX;
+                int y = inventoryItem.InventPosY;
+                int height = inventoryItem.ItemHeight;
+                int width = inventoryItem.ItemWidth;
+                for (int row = x; row < x + width; row++)
+                {
+                    for (int col = y; col < y + height; col++)
+                    {
+                        inventorySlot[row, col] = true;
+                    }
+                }
+            }
+
+            // check for any empty slots
+            for (int x = 0; x < 12; x++)
+            {
+                for (int y = 0; y < 5; y++)
+                {
+                    if (inventorySlot[x, y] == false)
+                    {
+                        return false;
+                    }
+                }
+            }
+            // no empty slots, so inventory is full
+            return true;
         }
 
         public void moveItem(SharpDX.Vector2 itemPosition)
