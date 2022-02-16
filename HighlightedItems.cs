@@ -133,13 +133,14 @@ namespace HighlightedItems
                                 break;
                             }
                             
+                            /*
                             if (!ingameState.IngameUi.StashElement.IsVisible
                                 && !ingameState.IngameUi.SellWindow.IsVisible
                                 && !ingameState.IngameUi.TradeWindow.IsVisible)
                             {
                                 DebugWindow.LogMsg("HighlightedItems: Stash Panel closed, aborting loop");
                                 break;
-                            }
+                            }*/
                             moveItem(item.GetClientRect().Center);
                         }
                     }
